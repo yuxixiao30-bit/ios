@@ -122,10 +122,10 @@ function findRoomOf(raw, name) {
   return m ? m[1] : null
 }
 
-/** 离开包里可能带目标房间：'3<房间ID> 或者直接一个 13 位 ID */
+/** 离开包里可能带目标房间：'3<房间ID> 或 3<房间ID>；uid 也是 13 位，不能乱认 */
 function extractRoomId(raw) {
   if (!raw) return null
-  const m = raw.match(/'3([0-9a-f]{13})/i) || raw.match(/([0-9a-f]{13})['"]?\s*$/)
+  const m = raw.match(/'3([0-9a-f]{13})/i) || raw.match(/(?:^|>)3([0-9a-f]{13})(?:<|$)/i)
   return m ? m[1] : null
 }
 
