@@ -1,0 +1,8 @@
+node_modules/
+config.json
+*.log
+.pnpm-store/
+
+# 联调时抓的第三方参考源码和文档，只留本地，不进仓库
+_ref/
+iirose-docs-main/

@@ -1,0 +1,15 @@
+{
+  "endpoints": [
+    "wss://m1.iirose.com",
+    "wss://m8.iirose.com",
+    "wss://m9.iirose.com"
+  ],
+  "username": "你的用户名（不带 [**]）",
+  "uid": "13位唯一标识",
+  "password": "密码明文或 32 位小写 MD5 都行",
+  "roomId": "房间 ID",
+  "commandPrefix": "/",
+  "ownerUid": "你自己的 uid，留空表示谁都能用管理命令",
+  "heartbeatMs": 30000,
+  "debug": false
+}

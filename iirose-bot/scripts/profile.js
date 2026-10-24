@@ -1,0 +1,15 @@
+﻿import { IiroseClient } from '../src/client.js';
+import { buildProfile } from '../src/protocol.js';
+import { loadConfig } from '../src/config.js';
+const config = await loadConfig();
+const c = new IiroseClient({ ...config, debug: false });
+await c.connect();
+const seen = [];
+c.on('unknown', (t) => seen.push(t));
+c.on('system', (t) => seen.push(t));
+c.send(buildProfile('雨雨不吃鱼'));
+await new Promise(r => setTimeout(r, 4000));
+for (const s of seen) console.log('RESP:', JSON.stringify(s.slice(0, 400)));
+console.log('count:', seen.length);
+c.close();
+process.exit(0);
