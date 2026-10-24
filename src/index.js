@@ -27,6 +27,9 @@ if (config.aiEnabled && config.apiKey) {
 let lastReplyAt = 0
 let repliesThisHour = 0
 let hourStart = Date.now()
+// 自己说完话后要盯的后续消息条数，以及这轮已经接了几次
+let followWindow = 0
+let chain = 0
 
 client.on('ready', () => {
   console.log(`[iirose] 已上线：${bot.name} (${bot.uid}) 房间 ${bot.roomId}`)
@@ -103,7 +106,14 @@ bot.on('message', async (message) => {
       && worthTalking(message.content)
       && Math.random() < (config.ambientChance ?? 0.18)
 
-    if (!mentioned && !ambient) return
+    // 自己刚说完话：后面这几条里找有没有能接下去的钩子
+    let continuation = 0
+    if (!mentioned && !ambient && followWindow > 0 && chain < (config.followupMaxChain ?? 12)) {
+      followWindow -= 1
+      continuation = chain
+    }
+
+    if (!mentioned && !ambient && !continuation) return
     if (now - lastReplyAt < (config.replyCooldownMs ?? 4000)) return
     if (now - hourStart > 3600 * 1000) {
       hourStart = now
@@ -121,9 +131,20 @@ bot.on('message', async (message) => {
       { ...message, content: img ? message.content.replace(img, '[图片]') : message.content },
       recentLines.slice(-8),
       img,
+      { continuation },
     )
+
+    if (!text) {
+      // 模型判断没钩子，这轮就断了
+      console.log(`[iirose] ${message.name} 这条没钩子，不接`)
+      if (followWindow <= 0) chain = 0
+      return
+    }
+
     bot.say(text)
-    console.log(`[iirose] ${ambient ? '插话' : '回'} ${message.name}${img ? '（带图）' : ''}：${text}`)
+    console.log(`[iirose] ${ambient ? '插话' : continuation ? '接话' : '回'} ${message.name}${img ? '（带图）' : ''}：${text}`)
+    followWindow = config.followupWindow ?? 5
+    chain = continuation ? chain + 1 : 1
   } catch (err) {
     console.error('[iirose] 处理消息失败：', err.message)
   }
