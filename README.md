@@ -51,7 +51,7 @@ scripts/
 默认前缀 `/`，命令名和别名都注册在 `src/plugins/basic.js`：
 
 ```
-/ping  /help(帮助)  /status(状态)  /say(说)  /like(赞)  /dislike(踩)
+/ping  /help(帮助)  /status(状态)  /say(说)  /like(赞)
 /follow(关注)  /move(切)  /recent(最近)
 ```
 

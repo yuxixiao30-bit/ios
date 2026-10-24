@@ -39,12 +39,6 @@ export function registerBasicCommands(registry, config = {}) {
     bot.like(uid, note.join(' '))
   }, { aliases: ['赞'], description: '点赞' })
 
-  registry.add('dislike', async ({ bot, message, args }) => {
-    const [uid, ...note] = args
-    if (!uid) return bot.reply(message.name, `用法：${registry.prefix}dislike <uid> [备注]`)
-    bot.dislike(uid, note.join(' '))
-  }, { aliases: ['踩'], description: '点踩' })
-
   registry.add('follow', async ({ bot, message, args }) => {
     const uid = args[0]
     if (!uid) return bot.reply(message.name, `用法：${registry.prefix}follow <uid>`)
