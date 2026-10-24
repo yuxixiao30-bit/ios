@@ -24,13 +24,21 @@ const DEFAULT_OPTIONS = {
   maxTokens: 120,
   historyTurns: 8,
   timeoutMs: 25000,
+  family: [],
 }
+
+const FAMILY_RULE = (names) => `
+这几个人是你的自己人、家里人：${names.join('、')}。
+对他们说话要软一点，会关心、会接话、会护着，别人怼他们你要帮着说话；被他们逗了也别急，最多哼一声。
+对其他人可以照常贫，但家里人不行。`
 
 export class PersonaAI {
   constructor(config = {}) {
     this.options = { ...DEFAULT_OPTIONS, ...config }
     if (!this.options.apiKey) throw new Error('PersonaAI 需要 apiKey')
     this.history = []
+    const family = this.options.family || []
+    this.systemPrompt = (this.options.systemPrompt || SYSTEM_PROMPT) + (family.length ? FAMILY_RULE(family) : '')
   }
 
   /** 把房间消息压成对话历史，只留最近几条 */
@@ -49,7 +57,7 @@ export class PersonaAI {
     const userText = `${message.name}：${message.content}`
 
     const messages = [
-      { role: 'system', content: this.options.systemPrompt || SYSTEM_PROMPT },
+      { role: 'system', content: this.systemPrompt },
       ...this.history,
       { role: 'user', content: userText },
     ]

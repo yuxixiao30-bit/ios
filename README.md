@@ -82,6 +82,19 @@ registry.add('roll', async ({ bot, message }) => {
 }, { aliases: ['骰子'], description: '掷个骰子' })
 ```
 
+## 开发流程
+
+新功能一律单开分支做，做完再合回 `main`，别直接往 `main` 上推：
+
+```bash
+git checkout -b feat/你的功能
+# 改代码
+git add -A && git commit -m "feat: 说明"
+git push -u origin feat/你的功能
+git checkout main && git merge --no-ff feat/你的功能
+git push
+```
+
 ## 注意
 
 - `config.json` 里有账号凭据和模型 key，已经在 `.gitignore` 里，别提交。

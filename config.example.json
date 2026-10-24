@@ -10,6 +10,9 @@
   "roomId": "房间 ID",
   "commandPrefix": "/",
   "ownerUid": "你自己的 uid，留空表示谁都能用管理命令",
+  "family": ["自己人的昵称，这几个说话会软一点"],
+  "aiEnabled": false,
+  "apiKey": "接模型才需要，不接留空",
   "heartbeatMs": 30000,
   "debug": false
 }

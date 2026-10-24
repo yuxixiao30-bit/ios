@@ -19,6 +19,7 @@ if (config.aiEnabled && config.apiKey) {
     model: config.model,
     temperature: config.temperature,
     maxTokens: config.maxTokens,
+    family: config.family || [],
   })
   console.log(`[iirose] 对话模型已接：${config.model}`)
 }
