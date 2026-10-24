@@ -131,6 +131,7 @@ export class IiroseClient extends EventEmitter {
           this.loginResult = login
           this.startHeartbeat()
           const info = splitInitPacket(login.init)
+          this.initInfo = info
           this.log(`登录成功，初始化包分段 ${info.partCount}，用户表 ${info.users.length} 字节`)
           resolve(info)
           return

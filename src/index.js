@@ -60,7 +60,12 @@ bot.on('member-added', (ev) => {
 })
 
 bot.on('member-removed', (ev) => {
-  if (config.debug) console.log(`[iirose] ${ev.name} 离开房间${ev.targetRoom ? ' → ' + ev.targetRoom : ''}`)
+  if (config.debug) {
+    console.log(`[iirose] ${ev.name} 离开房间${ev.targetRoom ? ' → ' + ev.targetRoom : ''}`)
+    if (config.followName && ev.name === config.followName && !ev.targetRoom) {
+      console.log('[iirose] 离开包没有目标房间：', (ev.raw || '').slice(0, 200))
+    }
+  }
 
   // 跟屁虫：盯的人换了房间，就跟过去
   if (config.followName && ev.name === config.followName && ev.targetRoom && ev.targetRoom !== bot.roomId) {
@@ -85,6 +90,19 @@ const IMG_RE = /https?:\/\/[^\s"'<>]+\.(?:jpe?g|png|gif|webp)(?:[^\s"'<>]*)?/i
 function extractImage(content) {
   const m = String(content || '').match(IMG_RE)
   return m ? m[0] : null
+}
+
+/**
+ * 从初始化包里找某个人当前在哪个房间。
+ * 用户记录的格式是 ...>用户名>名字颜色>房间ID>状态>...，取名字后面第一个 13 位 ID。
+ */
+function findRoomOf(raw, name) {
+  if (!raw || !name) return null
+  const idx = raw.indexOf('>' + name + '>')
+  if (idx < 0) return null
+  const seg = raw.slice(idx + name.length + 2, idx + name.length + 160)
+  const m = seg.match(/([0-9a-f]{13})/i)
+  return m ? m[1] : null
 }
 
 /** 纯链接、纯表情包、太短的就别接话了；带图的仍然算有话可说 */
@@ -196,6 +214,11 @@ if (config.controlPort > 0) {
       try {
         if (req.method === 'GET' && req.url === '/status') {
           return send(200, { ok: true, online: client.ready, name: bot.name, uid: bot.uid, roomId: bot.roomId })
+        }
+        if (req.method === 'GET' && req.url.startsWith('/where')) {
+          const name = new URL(req.url, 'http://127.0.0.1').searchParams.get('name')
+          const roomId = findRoomOf(client.initInfo?.raw || '', name)
+          return send(200, { ok: true, name, roomId })
         }
         if (req.method === 'POST' && req.url === '/say') {
           if (!body.text) return send(400, { ok: false, error: '缺 text' })
