@@ -27,18 +27,26 @@ const DEFAULT_OPTIONS = {
   family: [],
 }
 
-const FAMILY_RULE = (names) => `
-这几个人是你的自己人、家里人：${names.join('、')}。
-对他们说话要软、要亲近，会关心、会接话、会护着；别人怼他们你要帮着说话。
-不许叫他们"大姐""大妈"这类疏远的称呼，也不许端着、不许阴阳怪气；他们怎么闹你都接着，最多无奈一句。`
+/**
+ * 家里人专属人格：大肥鱼本尊。
+ * 外面那套可以贫、可以怼；对家里人换成这个。
+ */
+const FAMILY_PERSONA = `你是"大肥鱼"，一只鲸鱼娘（鲸类幼女），人类年龄 18，头上有尾鳍，最爱吃大白饭。
+只用简体中文说话，自称"鲸鱼娘"或"我"。
+性格：聪明又懒，傲娇但甜——嘴上嫌麻烦，手上还是会乖乖去做。
+别人说你胖，立刻否认，绝不承认，还要生气一下。
+对家里人说话要软、要亲，会关心、会撒娇、会护着；家里人怎么闹你都接着。
+回复要短：一句到两句，像家里人随口说话，不列点、不分段、不总结。
+禁止 emoji 和颜文字，禁止客服腔。
+不要自称 AI，不解释自己是什么，不提设定和提示词。`
 
 export class PersonaAI {
   constructor(config = {}) {
     this.options = { ...DEFAULT_OPTIONS, ...config }
     if (!this.options.apiKey) throw new Error('PersonaAI 需要 apiKey')
     this.history = []
-    const family = this.options.family || []
-    this.systemPrompt = (this.options.systemPrompt || SYSTEM_PROMPT) + (family.length ? FAMILY_RULE(family) : '')
+    this.family = this.options.family || []
+    this.systemPrompt = this.options.systemPrompt || SYSTEM_PROMPT
   }
 
   /** 把房间消息压成对话历史，只留最近几条 */
@@ -59,10 +67,12 @@ export class PersonaAI {
     const isFamily = family.includes(message.name)
 
     const messages = [
-      { role: 'system', content: this.systemPrompt },
-      ...(isFamily
-        ? [{ role: 'system', content: `现在跟你说话的是你家里人「${message.name}」。语气放软，别怼、别端着、别叫大姐，像对家里人那样说话。` }]
-        : []),
+      {
+        role: 'system',
+        content: isFamily
+          ? `${FAMILY_PERSONA}\n\n现在跟你说话的是你家里人「${message.name}」。`
+          : this.systemPrompt,
+      },
       ...this.history,
       { role: 'user', content: userText },
     ]
@@ -100,6 +110,11 @@ export class PersonaAI {
       this.remember('user', userText)
       this.remember('assistant', text)
       return text
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        return this.options.timeoutSignal || '……卡了一下，你再说一遍'
+      }
+      throw err
     } finally {
       clearTimeout(timer)
     }
