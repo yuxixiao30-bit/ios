@@ -122,15 +122,25 @@ export function parseSystemEvent(text) {
   const parts = text.split('>')
   const marker = parts[3] || ''
   if (marker.startsWith("'1")) {
-    return { kind: 'member-added', roomOrAvatar: parts[1] || '', name: parts[2] || '', uid: parts[8] || '' }
+    return { kind: 'member-added', roomOrAvatar: parts[1] || '', name: parts[2] || '', uid: parts[8] || '', raw: text }
   }
   if (marker.startsWith("'2")) {
+    // 换房间时尾部会带一个 "'3<房间ID>"，下线就没有；位置不固定，所以整段扫一遍
+    let targetRoom = ''
+    for (const field of parts.slice(8)) {
+      const m = field.match(/'3([0-9a-f]{13})/i) || field.match(/^([0-9a-f]{13})$/i)
+      if (m) {
+        targetRoom = m[1]
+        break
+      }
+    }
     return {
       kind: 'member-removed',
       roomOrAvatar: parts[1] || '',
       name: parts[2] || '',
       uid: parts[8] || '',
-      targetRoom: parts[10] || '',
+      targetRoom,
+      raw: text,
     }
   }
   return null
