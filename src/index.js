@@ -55,6 +55,10 @@ client.on('giveup', () => {
   process.exit(1)
 })
 
+if (config.debug) {
+  client.on('unknown', (text) => console.log('[raw]', text.slice(0, 220)))
+}
+
 bot.on('member-added', (ev) => {
   if (config.debug) console.log(`[iirose] ${ev.name} 进入房间`)
 })
@@ -62,22 +66,7 @@ bot.on('member-added', (ev) => {
 bot.on('member-removed', (ev) => {
   if (config.debug) {
     console.log(`[iirose] ${ev.name} 离开房间${ev.targetRoom ? ' → ' + ev.targetRoom : ''}`)
-    if (config.followName && ev.name === config.followName && !ev.targetRoom) {
-      console.log('[iirose] 离开包没有目标房间：', (ev.raw || '').slice(0, 200))
-    }
-  }
-
-  // 跟屁虫：盯的人换了房间，就跟过去
-  if (config.followName && ev.name === config.followName && ev.targetRoom && ev.targetRoom !== bot.roomId) {
-    const target = ev.targetRoom
-    setTimeout(() => {
-      try {
-        bot.moveRoom(target)
-        console.log(`[iirose] 跟过去了：${target}`)
-      } catch (err) {
-        console.error('[iirose] 跟过去失败：', err.message)
-      }
-    }, config.followDelayMs ?? 1500)
+    console.log('[leave raw]', (ev.raw || '').slice(0, 260))
   }
 })
 
