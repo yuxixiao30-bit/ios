@@ -184,12 +184,42 @@ export function buildBroadcast(text, uid) {
   return '~' + JSON.stringify({ t: text, c: uid, v: 0 })
 }
 
+const NAMED_ENTITIES = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+}
+
+/**
+ * 平台会把反斜杠、分号这类字符按 HTML 实体塞进消息里（比如 &#092; 就是反斜杠）。
+ * 不解的话模型看到的是实体，回话也会把实体原样发出去。
+ */
+export function decodeEntities(text) {
+  return String(text || '')
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => safeCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => safeCodePoint(Number(dec)))
+    .replace(/&([a-z]+);/gi, (whole, name) => NAMED_ENTITIES[name.toLowerCase()] ?? whole)
+}
+
+function safeCodePoint(code) {
+  if (!Number.isFinite(code) || code < 0 || code > 0x10ffff) return ''
+  try {
+    return String.fromCodePoint(code)
+  } catch {
+    return ''
+  }
+}
+
 /**
  * 把下行正文里的控制标记清干净：
- * [*用户名*] 提及、[_房间_*] 频道引用、(_hr)…(hr_) 引用块
+ * [*用户名*] 提及、[_房间_*] 频道引用、(_hr)…(hr_) 引用块，外加 HTML 实体解码
  */
 export function cleanContent(text) {
-  return String(text || '')
+  const decoded = decodeEntities(text)
+  return decoded
     .replace(/\(\s*_hr\s*\)([\s\S]*?)\(\s*hr_\s*\)/g, '')
     .replace(/\[\*([^*]*)\*\]/g, '@$1')
     .replace(/\[_([^_]*)_\]/g, '#$1')
