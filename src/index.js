@@ -60,16 +60,40 @@ bot.on('member-removed', (ev) => {
   if (config.debug) console.log(`[iirose] ${ev.name} 离开房间`)
 })
 
+const recentLines = []
+let lastAmbientAt = 0
+
+/** 纯链接、纯表情包、太短的就别接话了 */
+function worthTalking(content) {
+  const text = String(content || '').trim()
+  if (!text) return false
+  if (text.length < (config.ambientMinChars ?? 3)) return false
+  if (/^https?:\/\//.test(text)) return false
+  if (/#e$/.test(text)) return false
+  return /[\u4e00-\u9fa5A-Za-z]/.test(text)
+}
+
 bot.on('message', async (message) => {
   if (config.ignoreSelf && message.senderId === bot.uid) return
   if (config.debug) console.log(`[iirose] ${message.name}: ${message.content}`)
+
+  recentLines.push(`${message.name}：${message.content}`.slice(0, 120))
+  if (recentLines.length > 12) recentLines.shift()
+
   try {
     const handled = await registry.handle(bot, message)
     if (handled) return
     if (!ai) return
-    if (!mentionsMe(message.content, bot.name)) return
 
     const now = Date.now()
+    const mentioned = mentionsMe(message.content, bot.name)
+    const ambient = !mentioned
+      && config.ambientEnabled
+      && now - lastAmbientAt > (config.ambientCooldownMs ?? 25000)
+      && worthTalking(message.content)
+      && Math.random() < (config.ambientChance ?? 0.18)
+
+    if (!mentioned && !ambient) return
     if (now - lastReplyAt < (config.replyCooldownMs ?? 4000)) return
     if (now - hourStart > 3600 * 1000) {
       hourStart = now
@@ -81,10 +105,11 @@ bot.on('message', async (message) => {
     }
     lastReplyAt = now
     repliesThisHour += 1
+    if (ambient) lastAmbientAt = now
 
-    const text = await ai.reply(message)
+    const text = await ai.reply(message, recentLines.slice(-8))
     bot.say(text)
-    console.log(`[iirose] 回 ${message.name}：${text}`)
+    console.log(`[iirose] ${ambient ? '插话' : '回'} ${message.name}：${text}`)
   } catch (err) {
     console.error('[iirose] 处理消息失败：', err.message)
   }

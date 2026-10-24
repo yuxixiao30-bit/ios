@@ -61,10 +61,16 @@ export class PersonaAI {
    * @param {{name:string, content:string}} message 收到的消息
    * @returns {Promise<string>} 可以直接发出去的一句话
    */
-  async reply(message) {
+  async reply(message, contextLines = []) {
     const userText = `${message.name}：${message.content}`
-    const family = this.options.family || []
-    const isFamily = family.includes(message.name)
+    const isFamily = this.family.includes(message.name)
+
+    const contextBlock = contextLines.length
+      ? [{
+          role: 'system',
+          content: `房间最近在聊这些（从早到晚）：\n${contextLines.join('\n')}\n\n你也是这个房间里的人，接着他们的话题说，别答非所问。`,
+        }]
+      : []
 
     const messages = [
       {
@@ -73,6 +79,7 @@ export class PersonaAI {
           ? `${FAMILY_PERSONA}\n\n现在跟你说话的是你家里人「${message.name}」。`
           : this.systemPrompt,
       },
+      ...contextBlock,
       ...this.history,
       { role: 'user', content: userText },
     ]
