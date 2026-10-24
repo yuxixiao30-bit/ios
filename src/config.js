@@ -45,6 +45,7 @@ const defaults = {
   ambientMinChars: 3,
   followupWindow: 5,
   followupMaxChain: 12,
+  startupRetryMs: 300000,
   commandPrefix: '/',
   replyToOwner: true,
   ignoreSelf: true,

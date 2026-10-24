@@ -156,6 +156,10 @@ export class IiroseClient extends EventEmitter {
         this.ready = false
         this.stopHeartbeat()
         const why = `连接关闭（code=${code}${reason?.length ? '，' + reason.toString() : ''}）`
+        if (this.switching) {
+          this.switching = false
+          return
+        }
         if (!settled) {
           settled = true
           clearTimeout(timer)
@@ -243,6 +247,25 @@ export class IiroseClient extends EventEmitter {
         this.scheduleReconnect(onReconnect)
       })
     }, delay)
+  }
+
+  /**
+   * 换房间。
+   *
+   * 实测直接发 `m<房间ID>` 只会把人挪过去，消息流不会跟过来（r2 都不回），
+   * 所以这里干脆断线重连，登录报文里带新房间号。
+   */
+  async switchRoom(roomId) {
+    this.log('换房间（重连）', roomId)
+    this.config.roomId = roomId
+    this.self.roomId = roomId
+    this.switching = true
+    this.ready = false
+    this.stopHeartbeat()
+    try {
+      this.ws?.close()
+    } catch {}
+    return this.connect()
   }
 
   close() {
