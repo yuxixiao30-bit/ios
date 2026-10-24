@@ -11,6 +11,20 @@ const bot = new IroseBot(client, { maxHistory: config.maxHistory })
 const registry = new CommandRegistry({ prefix: config.commandPrefix })
 registerBasicCommands(registry, config)
 
+// 跟着谁换房间
+let followTarget = null
+
+registry.add('跟随', async ({ bot, message }) => {
+  followTarget = { name: message.name, uid: message.senderId }
+  bot.reply(message.name, '行，你走哪我跟哪。')
+}, { aliases: ['followme'], description: '跟着你换房间' })
+
+registry.add('别跟', async ({ bot, message }) => {
+  const had = followTarget
+  followTarget = null
+  bot.reply(message.name, had ? '行，不跟了。' : '本来也没跟着谁。')
+}, { aliases: ['stopfollow'], description: '不再跟着你' })
+
 let ai = null
 if (config.aiEnabled && config.apiKey) {
   ai = new PersonaAI({
@@ -68,6 +82,20 @@ bot.on('member-removed', (ev) => {
     console.log(`[iirose] ${ev.name} 离开房间${ev.targetRoom ? ' → ' + ev.targetRoom : ''}`)
     console.log('[leave raw]', (ev.raw || '').slice(0, 260))
   }
+
+  if (!followTarget || ev.name !== followTarget.name) return
+
+  const target = ev.targetRoom || extractRoomId(ev.raw)
+  if (!target || target === bot.roomId) return
+
+  setTimeout(() => {
+    try {
+      bot.moveRoom(target)
+      console.log(`[iirose] 跟随 ${followTarget.name} → ${target}`)
+    } catch (err) {
+      console.error('[iirose] 跟随失败：', err.message)
+    }
+  }, 1200)
 })
 
 const recentLines = []
@@ -91,6 +119,13 @@ function findRoomOf(raw, name) {
   if (idx < 0) return null
   const seg = raw.slice(idx + name.length + 2, idx + name.length + 160)
   const m = seg.match(/([0-9a-f]{13})/i)
+  return m ? m[1] : null
+}
+
+/** 离开包里可能带目标房间：'3<房间ID> 或者直接一个 13 位 ID */
+function extractRoomId(raw) {
+  if (!raw) return null
+  const m = raw.match(/'3([0-9a-f]{13})/i) || raw.match(/([0-9a-f]{13})['"]?\s*$/)
   return m ? m[1] : null
 }
 
@@ -208,6 +243,11 @@ if (config.controlPort > 0) {
           const name = new URL(req.url, 'http://127.0.0.1').searchParams.get('name')
           const roomId = findRoomOf(client.initInfo?.raw || '', name)
           return send(200, { ok: true, name, roomId })
+        }
+        if (req.method === 'POST' && req.url === '/raw') {
+          if (!body.text) return send(400, { ok: false, error: '缺 text' })
+          client.send(String(body.text))
+          return send(200, { ok: true })
         }
         if (req.method === 'POST' && req.url === '/say') {
           if (!body.text) return send(400, { ok: false, error: '缺 text' })
