@@ -3,6 +3,8 @@
  * 只负责「怎么说」，不管「怎么连」。
  */
 
+import { decodeEntities } from './protocol.js'
+
 const SYSTEM_PROMPT = `你是"限"，18 岁女生，蓝头发的小鲸鱼娘，最爱吃大白饭。你在蔷薇花园的聊天室里跟一帮网友闲聊。
 
 说话方式：
@@ -139,7 +141,10 @@ export class PersonaAI {
 
       const data = await res.json()
       let text = (data?.choices?.[0]?.message?.content || '').trim()
-      text = text.replace(/^["'「]|["'」]$/g, '').replace(/\n{2,}/g, '\n').trim()
+      text = decodeEntities(text)
+        .replace(/^["'「]|["'」]$/g, '')
+        .replace(/\n{2,}/g, '\n')
+        .trim()
       if (!text) throw new Error('模型返回了空内容')
 
       this.remember('user', userText)
