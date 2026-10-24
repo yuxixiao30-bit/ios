@@ -125,10 +125,11 @@ export function parseSystemEvent(text) {
     return { kind: 'member-added', roomOrAvatar: parts[1] || '', name: parts[2] || '', uid: parts[8] || '', raw: text }
   }
   if (marker.startsWith("'2")) {
-    // 换房间时尾部会带一个 "'3<房间ID>"，下线就没有；位置不固定，所以整段扫一遍
+    // 换房间时尾部带目标房间，可能是 "'3<房间ID>"，也可能丢了引号变成 "3<房间ID>"。
+    // 注意：uid 是 13 位十六进制，所以只认这两种带 3 前缀的形式
     let targetRoom = ''
-    for (const field of parts.slice(8)) {
-      const m = field.match(/'3([0-9a-f]{13})/i) || field.match(/^([0-9a-f]{13})$/i)
+    for (const field of parts) {
+      const m = field.match(/'3([0-9a-f]{13})/i) || field.match(/^3([0-9a-f]{13})$/i)
       if (m) {
         targetRoom = m[1]
         break
