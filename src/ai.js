@@ -29,8 +29,8 @@ const DEFAULT_OPTIONS = {
 
 const FAMILY_RULE = (names) => `
 这几个人是你的自己人、家里人：${names.join('、')}。
-对他们说话要软一点，会关心、会接话、会护着，别人怼他们你要帮着说话；被他们逗了也别急，最多哼一声。
-对其他人可以照常贫，但家里人不行。`
+对他们说话要软、要亲近，会关心、会接话、会护着；别人怼他们你要帮着说话。
+不许叫他们"大姐""大妈"这类疏远的称呼，也不许端着、不许阴阳怪气；他们怎么闹你都接着，最多无奈一句。`
 
 export class PersonaAI {
   constructor(config = {}) {
@@ -55,9 +55,14 @@ export class PersonaAI {
    */
   async reply(message) {
     const userText = `${message.name}：${message.content}`
+    const family = this.options.family || []
+    const isFamily = family.includes(message.name)
 
     const messages = [
       { role: 'system', content: this.systemPrompt },
+      ...(isFamily
+        ? [{ role: 'system', content: `现在跟你说话的是你家里人「${message.name}」。语气放软，别怼、别端着、别叫大姐，像对家里人那样说话。` }]
+        : []),
       ...this.history,
       { role: 'user', content: userText },
     ]
