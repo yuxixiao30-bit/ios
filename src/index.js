@@ -63,8 +63,17 @@ bot.on('member-removed', (ev) => {
 const recentLines = []
 let lastAmbientAt = 0
 
-/** 纯链接、纯表情包、太短的就别接话了 */
+const IMG_RE = /https?:\/\/[^\s"'<>]+\.(?:jpe?g|png|gif|webp)(?:[^\s"'<>]*)?/i
+
+/** 发言里带的图 */
+function extractImage(content) {
+  const m = String(content || '').match(IMG_RE)
+  return m ? m[0] : null
+}
+
+/** 纯链接、纯表情包、太短的就别接话了；带图的仍然算有话可说 */
 function worthTalking(content) {
+  if (extractImage(content)) return true
   const text = String(content || '').trim()
   if (!text) return false
   if (text.length < (config.ambientMinChars ?? 3)) return false
@@ -75,7 +84,8 @@ function worthTalking(content) {
 
 bot.on('message', async (message) => {
   if (config.ignoreSelf && message.senderId === bot.uid) return
-  if (config.debug) console.log(`[iirose] ${message.name}: ${message.content}`)
+  const img = extractImage(message.content)
+  if (config.debug) console.log(`[iirose] ${message.name}${img ? '（图）' : ''}: ${message.content}`)
 
   recentLines.push(`${message.name}：${message.content}`.slice(0, 120))
   if (recentLines.length > 12) recentLines.shift()
@@ -107,9 +117,13 @@ bot.on('message', async (message) => {
     repliesThisHour += 1
     if (ambient) lastAmbientAt = now
 
-    const text = await ai.reply(message, recentLines.slice(-8))
+    const text = await ai.reply(
+      { ...message, content: img ? message.content.replace(img, '[图片]') : message.content },
+      recentLines.slice(-8),
+      img,
+    )
     bot.say(text)
-    console.log(`[iirose] ${ambient ? '插话' : '回'} ${message.name}：${text}`)
+    console.log(`[iirose] ${ambient ? '插话' : '回'} ${message.name}${img ? '（带图）' : ''}：${text}`)
   } catch (err) {
     console.error('[iirose] 处理消息失败：', err.message)
   }
