@@ -60,7 +60,20 @@ bot.on('member-added', (ev) => {
 })
 
 bot.on('member-removed', (ev) => {
-  if (config.debug) console.log(`[iirose] ${ev.name} 离开房间`)
+  if (config.debug) console.log(`[iirose] ${ev.name} 离开房间${ev.targetRoom ? ' → ' + ev.targetRoom : ''}`)
+
+  // 跟屁虫：盯的人换了房间，就跟过去
+  if (config.followName && ev.name === config.followName && ev.targetRoom && ev.targetRoom !== bot.roomId) {
+    const target = ev.targetRoom
+    setTimeout(() => {
+      try {
+        bot.moveRoom(target)
+        console.log(`[iirose] 跟过去了：${target}`)
+      } catch (err) {
+        console.error('[iirose] 跟过去失败：', err.message)
+      }
+    }, config.followDelayMs ?? 1500)
+  }
 })
 
 const recentLines = []
