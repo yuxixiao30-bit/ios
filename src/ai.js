@@ -75,11 +75,15 @@ export class PersonaAI {
   /**
    * 根据一条新消息生成回复。
    * @param {{name:string, content:string}} message 收到的消息
-   * @returns {Promise<string>} 可以直接发出去的一句话
+   * @param {string[]} contextLines 房间最近几条聊天
+   * @param {string|null} imageUrl 消息里带的图
+   * @param {{continuation?:number}} opts continuation 表示这是自己刚说完话之后的第几条
+   * @returns {Promise<string|null>} 可以直接发出去的一句话；null 表示这条没钩子、不接
    */
-  async reply(message, contextLines = [], imageUrl = null) {
+  async reply(message, contextLines = [], imageUrl = null, opts = {}) {
     const userText = `${message.name}：${message.content}`
     const isFamily = this.family.includes(message.name)
+    const continuation = Number(opts.continuation) || 0
 
     const contextBlock = contextLines.length
       ? [{
@@ -89,11 +93,14 @@ export class PersonaAI {
       : []
 
     let userContent = userText
+    if (continuation) {
+      userContent += `\n\n（你刚在群里说完话，这是之后的第 ${continuation} 条消息。判断这条有没有继续聊的钩子：只有它明显是冲着你来的——回你的话、接你的茬、回答你、问你、@你——才自然接一句。别人之间互相说话、打卡、刷表情、发无关短句，一律只输出 PASS 四个字母，不要输出任何别的内容。）`
+    }
     if (imageUrl) {
       try {
         const dataUrl = await toDataUrl(imageUrl, this.options.visionMaxBytes ?? 4 * 1024 * 1024)
         userContent = [
-          { type: 'text', text: `${userText}\n（对方还发了张图，看一眼是什么，接话时自然提一句）` },
+          { type: 'text', text: `${userContent}\n（对方还发了张图，看一眼是什么，接话时自然提一句）` },
           { type: 'image_url', image_url: { url: dataUrl } },
         ]
       } catch (err) {
@@ -146,6 +153,7 @@ export class PersonaAI {
         .replace(/\n{2,}/g, '\n')
         .trim()
       if (!text) throw new Error('模型返回了空内容')
+      if (continuation && /^PASS[.。!！]?$/i.test(text)) return null
 
       this.remember('user', userText)
       this.remember('assistant', text)

@@ -43,6 +43,8 @@ const defaults = {
   ambientChance: 0.18,
   ambientCooldownMs: 25000,
   ambientMinChars: 3,
+  followupWindow: 5,
+  followupMaxChain: 12,
   commandPrefix: '/',
   replyToOwner: true,
   ignoreSelf: true,
