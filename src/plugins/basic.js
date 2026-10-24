@@ -6,6 +6,18 @@
  *   message 下行消息（name / content / senderId …）
  *   args    命令名之后按空白切开的参数
  */
+/**
+ * 唯一标识在房间里常以 [@5efc5d6adced4@] 这种带标记的形式出现，
+ * 这里统一剥成纯 ID，纯 ID 也照常收。
+ */
+function normalizeUid(raw) {
+  return String(raw || '')
+    .trim()
+    .replace(/^\[\s*@?/, '')
+    .replace(/@?\s*\]$/, '')
+    .trim()
+}
+
 export function registerBasicCommands(registry, config = {}) {
   const isOwner = (message) => {
     if (!config.ownerUid) return true
@@ -34,14 +46,15 @@ export function registerBasicCommands(registry, config = {}) {
   }, { aliases: ['说'], description: '让机器人说话（主人）' })
 
   registry.add('like', async ({ bot, message, args }) => {
-    const [uid, ...note] = args
-    if (!uid) return bot.reply(message.name, `用法：${registry.prefix}like <uid> [备注]`)
-    bot.like(uid, note.join(' '))
+    const uid = normalizeUid(args[0])
+    const note = args.slice(1).join(' ')
+    if (!uid) return bot.reply(message.name, `用法：${registry.prefix}like <唯一标识> [备注]`)
+    bot.like(uid, note)
   }, { aliases: ['赞'], description: '点赞' })
 
   registry.add('follow', async ({ bot, message, args }) => {
-    const uid = args[0]
-    if (!uid) return bot.reply(message.name, `用法：${registry.prefix}follow <uid>`)
+    const uid = normalizeUid(args[0])
+    if (!uid) return bot.reply(message.name, `用法：${registry.prefix}follow <唯一标识>`)
     bot.follow(uid, true)
   }, { aliases: ['关注'], description: '关注某人' })
 
