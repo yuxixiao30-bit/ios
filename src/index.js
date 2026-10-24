@@ -271,9 +271,13 @@ if (config.controlPort > 0) {
 }
 
 console.log('[iirose] 连接中…')
-try {
-  await client.connect()
-} catch (err) {
-  console.error(`[iirose] 首次连接失败：${err.message}`)
-  process.exit(1)
+for (;;) {
+  try {
+    await client.connect()
+    break
+  } catch (err) {
+    const wait = config.startupRetryMs ?? 30000
+    console.error(`[iirose] 首次连接失败：${err.message}，${wait / 1000} 秒后重试`)
+    await new Promise((resolve) => setTimeout(resolve, wait))
+  }
 }

@@ -72,9 +72,10 @@ export class IroseBot extends EventEmitter {
     return this.client.send(buildPrivate(groupId, text, this.uid, nextMessageId()))
   }
 
-  /** 换房间 */
+  /** 换房间（断线重连带新房间号，见 client.switchRoom） */
   moveRoom(roomId) {
     this.roomId = roomId
+    if (typeof this.client.switchRoom === 'function') return this.client.switchRoom(roomId)
     return this.client.send(buildMoveRoom(roomId))
   }
 
