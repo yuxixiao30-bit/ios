@@ -25,6 +25,20 @@ const DEFAULT_OPTIONS = {
   historyTurns: 8,
   timeoutMs: 25000,
   family: [],
+  visionMaxBytes: 4 * 1024 * 1024,
+}
+
+/** 把图片拉下来转成 data URL，模型那边只认这个（直接给 URL 它下不动） */
+async function toDataUrl(url, maxBytes) {
+  const res = await fetch(url, {
+    headers: { 'user-agent': 'Mozilla/5.0' },
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) throw new Error(`图片下载失败 ${res.status}`)
+  const type = res.headers.get('content-type') || 'image/jpeg'
+  const buf = Buffer.from(await res.arrayBuffer())
+  if (buf.length > maxBytes) throw new Error(`图片太大（${buf.length} 字节）`)
+  return `data:${type};base64,${buf.toString('base64')}`
 }
 
 /**
@@ -61,7 +75,7 @@ export class PersonaAI {
    * @param {{name:string, content:string}} message 收到的消息
    * @returns {Promise<string>} 可以直接发出去的一句话
    */
-  async reply(message, contextLines = []) {
+  async reply(message, contextLines = [], imageUrl = null) {
     const userText = `${message.name}：${message.content}`
     const isFamily = this.family.includes(message.name)
 
@@ -72,6 +86,20 @@ export class PersonaAI {
         }]
       : []
 
+    let userContent = userText
+    if (imageUrl) {
+      try {
+        const dataUrl = await toDataUrl(imageUrl, this.options.visionMaxBytes ?? 4 * 1024 * 1024)
+        userContent = [
+          { type: 'text', text: `${userText}\n（对方还发了张图，看一眼是什么，接话时自然提一句）` },
+          { type: 'image_url', image_url: { url: dataUrl } },
+        ]
+      } catch (err) {
+        this.lastImageError = err.message
+        userContent = `${userText}\n（对方发了张图，但没加载出来，说自己没看清）`
+      }
+    }
+
     const messages = [
       {
         role: 'system',
@@ -81,7 +109,7 @@ export class PersonaAI {
       },
       ...contextBlock,
       ...this.history,
-      { role: 'user', content: userText },
+      { role: 'user', content: userContent },
     ]
 
     const controller = new AbortController()
