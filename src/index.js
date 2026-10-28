@@ -211,6 +211,11 @@ process.on('SIGINT', () => {
   process.exit(0)
 })
 
+// 别因为一个没接住的 Promise 就把整个进程带走
+process.on('unhandledRejection', (err) => {
+  console.error('[iirose] 未处理的异步错误：', err?.message || err)
+})
+
 /**
  * 本地控制口（默认关闭）：让外部脚本能指挥机器人说话，不用另开一条连接。
  *   POST /say   {"text":"..."}
@@ -226,7 +231,7 @@ if (config.controlPort > 0) {
     }
     const chunks = []
     req.on('data', (c) => chunks.push(c))
-    req.on('end', () => {
+    req.on('end', async () => {
       let body = {}
       if (chunks.length) {
         try {
@@ -256,8 +261,8 @@ if (config.controlPort > 0) {
         }
         if (req.method === 'POST' && req.url === '/room') {
           if (!body.roomId) return send(400, { ok: false, error: '缺 roomId' })
-          bot.moveRoom(String(body.roomId))
-          return send(200, { ok: true })
+          await bot.moveRoom(String(body.roomId))
+          return send(200, { ok: true, roomId: bot.roomId })
         }
         return send(404, { ok: false, error: '没有这个接口' })
       } catch (err) {

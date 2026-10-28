@@ -253,10 +253,15 @@ export class IiroseClient extends EventEmitter {
    * 换房间。
    *
    * 实测直接发 `m<房间ID>` 只会把人挪过去，消息流不会跟过来（r2 都不回），
-   * 所以这里干脆断线重连，登录报文里带新房间号。
+   * 所以断线重连、登录报文里带新房间号。
+   *
+   * 坑：关掉旧连接后服务端还会认为这个号在线，立刻重连会被回 code=s（会话冲突），
+   * 所以先等一会儿，失败再退避重试几次。
    */
   async switchRoom(roomId) {
     this.log('换房间（重连）', roomId)
+    // 参考实现换房时会带上 lr（上一个房间），不带的话服务端容易当成重复会话
+    this.config.lastRoomId = this.config.roomId
     this.config.roomId = roomId
     this.self.roomId = roomId
     this.switching = true
@@ -265,7 +270,23 @@ export class IiroseClient extends EventEmitter {
     try {
       this.ws?.close()
     } catch {}
-    return this.connect()
+    this.ws = null
+
+    const waitClose = this.config.switchSettleMs ?? 2500
+    await new Promise((r) => setTimeout(r, waitClose))
+
+    let lastError = null
+    for (let attempt = 1; attempt <= (this.config.switchAttempts ?? 5); attempt += 1) {
+      try {
+        return await this.connect()
+      } catch (err) {
+        lastError = err
+        this.log(`换房重连第 ${attempt} 次失败：${err.message}`)
+        await new Promise((r) => setTimeout(r, 5000 * attempt))
+      }
+    }
+    this.switching = false
+    throw lastError || new Error('换房间失败')
   }
 
   close() {
