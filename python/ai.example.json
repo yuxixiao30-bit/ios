@@ -1,0 +1,34 @@
+{
+  "aiEnabled": true,
+  "replyCooldownMs": 7000,
+  "ambientChance": 0.1,
+  "familyChance": 0.55,
+  "ambientCooldownMs": 25000,
+  "followupWindow": 2,
+  "followupMaxChain": 3,
+  "memeEnabled": true,
+  "memeChance": 0.25,
+  "selfTalkEnabled": true,
+  "names": [
+    "鲸鱼娘",
+    "鱼鱼",
+    "小鱼",
+    "大肥鱼",
+    "鲸鱼"
+  ],
+  "visionApiKey": "",
+  "visionApiBase": "https://open.bigmodel.cn/api/paas/v4",
+  "visionModel": "glm-4v-flash",
+  "ignoreBots": [
+    "小椰",
+    "猫小仙"
+  ],
+  "temperature": 0.9,
+  "memeStyle": "",
+  "memeAvoid": [
+    "黄豆",
+    "抽象"
+  ],
+  "quoteChance": 0.35,
+  "forumIntervalMin": 600
+}

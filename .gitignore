@@ -6,3 +6,14 @@ config.json
 # 联调时抓的第三方参考源码和文档，只留本地，不进仓库
 _ref/
 iirose-docs-main/
+
+# Python 版：账号配置、运行时数据、表情包与日志都不进仓库
+python/config/
+python/memory/
+python/memes/
+python/logs/
+python/ai.json
+python/follow.json
+python/run.pid
+__pycache__/
+*.pyc

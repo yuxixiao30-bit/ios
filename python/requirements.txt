@@ -1,0 +1,8 @@
+loguru>=0.7.2
+requests>=2.31.0
+pyyaml>=6.0.1
+numpy>=1.26.1
+pillow>=10.3.0
+configparser>=5.0.2
+aiohttp>=3.8.6
+websockets>=12.0
